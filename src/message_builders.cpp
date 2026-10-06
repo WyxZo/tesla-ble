@@ -50,7 +50,8 @@ bool encode_front_seat_heater_actions(pb_ostream_t *stream, const pb_field_t *fi
   };
 
   for (const auto position_tag : POSITION_TAGS) {
-    auto seat_action = CarServer_HvacSeatHeaterActions_HvacSeatHeaterAction_init_default;
+    CarServer_HvacSeatHeaterActions_HvacSeatHeaterAction seat_action =
+        CarServer_HvacSeatHeaterActions_HvacSeatHeaterAction_init_default;
     seat_action.which_seat_heater_level = level_tag;
     seat_action.which_seat_position = position_tag;
 
@@ -93,7 +94,8 @@ bool encode_front_seat_cooler_actions(pb_ostream_t *stream, const pb_field_t *fi
   };
 
   for (const auto position : POSITIONS) {
-    auto seat_action = CarServer_HvacSeatCoolerActions_HvacSeatCoolerAction_init_default;
+    CarServer_HvacSeatCoolerActions_HvacSeatCoolerAction seat_action =
+        CarServer_HvacSeatCoolerActions_HvacSeatCoolerAction_init_default;
     seat_action.seat_cooler_level = level;
     seat_action.seat_position = position;
 
@@ -254,7 +256,8 @@ int VehicleActionBuilder::build_hvac_steering_wheel_heater(CarServer_VehicleActi
 int VehicleActionBuilder::build_hvac_seat_heater_actions(CarServer_VehicleAction &action, const void *data) {
   const auto *level_ptr = require_data<int32_t>(data, "HVAC seat heater action requires int32_t level data");
   if (level_ptr == nullptr || !ParameterValidator::is_valid_seat_climate_level(*level_ptr)) {
-    LOG_ERROR("Invalid front seat heater level: %d (must be 0-3)", level_ptr ? *level_ptr : -1);
+    LOG_ERROR("Invalid front seat heater level: %" PRId32 " (must be 0-3)",
+              level_ptr ? *level_ptr : int32_t{-1});
     return TeslaBLE_Status_E_ERROR_INVALID_PARAMS;
   }
 
@@ -267,7 +270,8 @@ int VehicleActionBuilder::build_hvac_seat_heater_actions(CarServer_VehicleAction
 int VehicleActionBuilder::build_hvac_seat_cooler_actions(CarServer_VehicleAction &action, const void *data) {
   const auto *level_ptr = require_data<int32_t>(data, "HVAC seat cooler action requires int32_t level data");
   if (level_ptr == nullptr || !ParameterValidator::is_valid_seat_climate_level(*level_ptr)) {
-    LOG_ERROR("Invalid front seat cooler level: %d (must be 0-3)", level_ptr ? *level_ptr : -1);
+    LOG_ERROR("Invalid front seat cooler level: %" PRId32 " (must be 0-3)",
+              level_ptr ? *level_ptr : int32_t{-1});
     return TeslaBLE_Status_E_ERROR_INVALID_PARAMS;
   }
 
