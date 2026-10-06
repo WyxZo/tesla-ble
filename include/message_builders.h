@@ -34,6 +34,8 @@ class VehicleActionBuilder {
   static int build_scheduled_charging(CarServer_VehicleAction &action, const void *data);
   static int build_hvac_auto_action(CarServer_VehicleAction &action, const void *data);
   static int build_hvac_steering_wheel_heater(CarServer_VehicleAction &action, const void *data);
+  static int build_hvac_seat_heater_actions(CarServer_VehicleAction &action, const void *data);
+  static int build_hvac_seat_cooler_actions(CarServer_VehicleAction &action, const void *data);
   static int build_vehicle_control_flash_lights(CarServer_VehicleAction &action, const void *data);
   static int build_vehicle_control_honk_horn(CarServer_VehicleAction &action, const void *data);
   static int build_vehicle_control_set_sentry_mode(CarServer_VehicleAction &action, const void *data);
@@ -73,6 +75,7 @@ class ParameterValidator {
  public:
   static bool is_valid_charging_limit(int32_t percent);
   static bool is_valid_charging_amps(int32_t amps);
+  static bool is_valid_seat_climate_level(int32_t level);
   static bool is_valid_ping_value(int32_t ping_value);
   static bool is_valid_vin(const char *vin);
   static bool is_valid_connection_id(const pb_byte_t *connection_id);
