@@ -7,6 +7,7 @@
 #include "universal_message.pb.h"
 
 #include <cinttypes>
+#include <pb_encode.h>
 
 namespace TeslaBLE {
 
@@ -17,6 +18,92 @@ template<typename T> const T *require_data(const void *data, const char *message
     return nullptr;
   }
   return static_cast<const T *>(data);
+}
+
+bool encode_front_seat_heater_actions(pb_ostream_t *stream, const pb_field_t *field, void *const *arg) {
+  const auto *level_ptr = static_cast<const int32_t *>(*arg);
+  if (level_ptr == nullptr) {
+    return false;
+  }
+
+  pb_size_t level_tag = 0;
+  switch (*level_ptr) {
+    case 0:
+      level_tag = CarServer_HvacSeatHeaterActions_HvacSeatHeaterAction_SEAT_HEATER_OFF_tag;
+      break;
+    case 1:
+      level_tag = CarServer_HvacSeatHeaterActions_HvacSeatHeaterAction_SEAT_HEATER_LOW_tag;
+      break;
+    case 2:
+      level_tag = CarServer_HvacSeatHeaterActions_HvacSeatHeaterAction_SEAT_HEATER_MED_tag;
+      break;
+    case 3:
+      level_tag = CarServer_HvacSeatHeaterActions_HvacSeatHeaterAction_SEAT_HEATER_HIGH_tag;
+      break;
+    default:
+      return false;
+  }
+
+  constexpr pb_size_t POSITION_TAGS[] = {
+      CarServer_HvacSeatHeaterActions_HvacSeatHeaterAction_CAR_SEAT_FRONT_LEFT_tag,
+      CarServer_HvacSeatHeaterActions_HvacSeatHeaterAction_CAR_SEAT_FRONT_RIGHT_tag,
+  };
+
+  for (const auto position_tag : POSITION_TAGS) {
+    auto seat_action = CarServer_HvacSeatHeaterActions_HvacSeatHeaterAction_init_default;
+    seat_action.which_seat_heater_level = level_tag;
+    seat_action.which_seat_position = position_tag;
+
+    if (!pb_encode_tag_for_field(stream, field) ||
+        !pb_encode_submessage(stream, CarServer_HvacSeatHeaterActions_HvacSeatHeaterAction_fields, &seat_action)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+bool encode_front_seat_cooler_actions(pb_ostream_t *stream, const pb_field_t *field, void *const *arg) {
+  const auto *level_ptr = static_cast<const int32_t *>(*arg);
+  if (level_ptr == nullptr) {
+    return false;
+  }
+
+  CarServer_HvacSeatCoolerActions_HvacSeatCoolerLevel_E level;
+  switch (*level_ptr) {
+    case 0:
+      level = CarServer_HvacSeatCoolerActions_HvacSeatCoolerLevel_E_HvacSeatCoolerLevel_Off;
+      break;
+    case 1:
+      level = CarServer_HvacSeatCoolerActions_HvacSeatCoolerLevel_E_HvacSeatCoolerLevel_Low;
+      break;
+    case 2:
+      level = CarServer_HvacSeatCoolerActions_HvacSeatCoolerLevel_E_HvacSeatCoolerLevel_Med;
+      break;
+    case 3:
+      level = CarServer_HvacSeatCoolerActions_HvacSeatCoolerLevel_E_HvacSeatCoolerLevel_High;
+      break;
+    default:
+      return false;
+  }
+
+  constexpr CarServer_HvacSeatCoolerActions_HvacSeatCoolerPosition_E POSITIONS[] = {
+      CarServer_HvacSeatCoolerActions_HvacSeatCoolerPosition_E_HvacSeatCoolerPosition_FrontLeft,
+      CarServer_HvacSeatCoolerActions_HvacSeatCoolerPosition_E_HvacSeatCoolerPosition_FrontRight,
+  };
+
+  for (const auto position : POSITIONS) {
+    auto seat_action = CarServer_HvacSeatCoolerActions_HvacSeatCoolerAction_init_default;
+    seat_action.seat_cooler_level = level;
+    seat_action.seat_position = position;
+
+    if (!pb_encode_tag_for_field(stream, field) ||
+        !pb_encode_submessage(stream, CarServer_HvacSeatCoolerActions_HvacSeatCoolerAction_fields, &seat_action)) {
+      return false;
+    }
+  }
+
+  return true;
 }
 }  // namespace
 
@@ -30,6 +117,8 @@ const std::unordered_map<pb_size_t, VehicleActionBuilder::BuilderFunction> &Vehi
       {CarServer_VehicleAction_scheduledChargingAction_tag, build_scheduled_charging},
       {CarServer_VehicleAction_hvacAutoAction_tag, build_hvac_auto_action},
       {CarServer_VehicleAction_hvacSteeringWheelHeaterAction_tag, build_hvac_steering_wheel_heater},
+      {CarServer_VehicleAction_hvacSeatHeaterActions_tag, build_hvac_seat_heater_actions},
+      {CarServer_VehicleAction_hvacSeatCoolerActions_tag, build_hvac_seat_cooler_actions},
       {CarServer_VehicleAction_vehicleControlFlashLightsAction_tag, build_vehicle_control_flash_lights},
       {CarServer_VehicleAction_vehicleControlHonkHornAction_tag, build_vehicle_control_honk_horn},
       {CarServer_VehicleAction_vehicleControlSetSentryModeAction_tag, build_vehicle_control_set_sentry_mode},
@@ -161,6 +250,33 @@ int VehicleActionBuilder::build_hvac_steering_wheel_heater(CarServer_VehicleActi
   action.vehicle_action_msg.hvacSteeringWheelHeaterAction.power_on = is_on;
   return TeslaBLE_Status_E_OK;
 }
+
+int VehicleActionBuilder::build_hvac_seat_heater_actions(CarServer_VehicleAction &action, const void *data) {
+  const auto *level_ptr = require_data<int32_t>(data, "HVAC seat heater action requires int32_t level data");
+  if (level_ptr == nullptr || !ParameterValidator::is_valid_seat_climate_level(*level_ptr)) {
+    LOG_ERROR("Invalid front seat heater level: %d (must be 0-3)", level_ptr ? *level_ptr : -1);
+    return TeslaBLE_Status_E_ERROR_INVALID_PARAMS;
+  }
+
+  action.vehicle_action_msg.hvacSeatHeaterActions = CarServer_HvacSeatHeaterActions_init_default;
+  action.vehicle_action_msg.hvacSeatHeaterActions.hvacSeatHeaterAction.funcs.encode = encode_front_seat_heater_actions;
+  action.vehicle_action_msg.hvacSeatHeaterActions.hvacSeatHeaterAction.arg = const_cast<int32_t *>(level_ptr);
+  return TeslaBLE_Status_E_OK;
+}
+
+int VehicleActionBuilder::build_hvac_seat_cooler_actions(CarServer_VehicleAction &action, const void *data) {
+  const auto *level_ptr = require_data<int32_t>(data, "HVAC seat cooler action requires int32_t level data");
+  if (level_ptr == nullptr || !ParameterValidator::is_valid_seat_climate_level(*level_ptr)) {
+    LOG_ERROR("Invalid front seat cooler level: %d (must be 0-3)", level_ptr ? *level_ptr : -1);
+    return TeslaBLE_Status_E_ERROR_INVALID_PARAMS;
+  }
+
+  action.vehicle_action_msg.hvacSeatCoolerActions = CarServer_HvacSeatCoolerActions_init_default;
+  action.vehicle_action_msg.hvacSeatCoolerActions.hvacSeatCoolerAction.funcs.encode = encode_front_seat_cooler_actions;
+  action.vehicle_action_msg.hvacSeatCoolerActions.hvacSeatCoolerAction.arg = const_cast<int32_t *>(level_ptr);
+  return TeslaBLE_Status_E_OK;
+}
+
 
 int VehicleActionBuilder::build_vehicle_control_flash_lights(CarServer_VehicleAction &action, const void *data) {
   action.vehicle_action_msg.vehicleControlFlashLightsAction = CarServer_VehicleControlFlashLightsAction_init_default;
@@ -399,6 +515,8 @@ bool ParameterValidator::is_valid_charging_limit(int32_t percent) { return perce
 bool ParameterValidator::is_valid_charging_amps(int32_t amps) {
   return amps >= 0 && amps <= 80;  // Allow 0 to stop charging
 }
+
+bool ParameterValidator::is_valid_seat_climate_level(int32_t level) { return level >= 0 && level <= 3; }
 
 bool ParameterValidator::is_valid_ping_value(int32_t ping_value) {
   return ping_value >= 0;  // Any non-negative value should be valid
