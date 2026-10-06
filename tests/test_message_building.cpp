@@ -425,6 +425,43 @@ INSTANTIATE_TEST_SUITE_P(
         std::make_tuple("ping_99999", CarServer_VehicleAction_ping_tag, 99999)),
     [](const ::testing::TestParamInfo<VehicleActionNumericTest::ParamType> &info) { return std::get<0>(info.param); });
 
+TEST_F(MessageBuildingTest, BuildFrontSeatHeaterActions) {
+  pb_byte_t buffer[UniversalMessage_RoutableMessage_size];
+  for (int32_t level = 0; level <= 3; ++level) {
+    size_t length = 0;
+    auto result = client->build_car_server_vehicle_action_message(
+        buffer, &length, CarServer_VehicleAction_hvacSeatHeaterActions_tag, &level);
+    EXPECT_EQ(result, TeslaBLE_Status_E_OK) << "Front seat heater level " << level << " should encode";
+    EXPECT_GT(length, 0);
+    EXPECT_LE(length, sizeof(buffer));
+  }
+}
+
+TEST_F(MessageBuildingTest, BuildFrontSeatCoolerActions) {
+  pb_byte_t buffer[UniversalMessage_RoutableMessage_size];
+  for (int32_t level = 0; level <= 3; ++level) {
+    size_t length = 0;
+    auto result = client->build_car_server_vehicle_action_message(
+        buffer, &length, CarServer_VehicleAction_hvacSeatCoolerActions_tag, &level);
+    EXPECT_EQ(result, TeslaBLE_Status_E_OK) << "Front seat cooler level " << level << " should encode";
+    EXPECT_GT(length, 0);
+    EXPECT_LE(length, sizeof(buffer));
+  }
+}
+
+TEST_F(MessageBuildingTest, RejectInvalidFrontSeatClimateLevel) {
+  pb_byte_t buffer[UniversalMessage_RoutableMessage_size];
+  size_t length = 0;
+  int32_t invalid_level = 4;
+
+  EXPECT_NE(client->build_car_server_vehicle_action_message(
+                buffer, &length, CarServer_VehicleAction_hvacSeatHeaterActions_tag, &invalid_level),
+            TeslaBLE_Status_E_OK);
+  EXPECT_NE(client->build_car_server_vehicle_action_message(
+                buffer, &length, CarServer_VehicleAction_hvacSeatCoolerActions_tag, &invalid_level),
+            TeslaBLE_Status_E_OK);
+}
+
 TEST_F(MessageBuildingTest, VehicleActionCoverageReport) {
   auto all_tags = get_all_vehicle_action_tags();
 
