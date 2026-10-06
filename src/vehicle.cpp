@@ -1402,6 +1402,16 @@ void TeslaBLE::Vehicle::set_steering_wheel_heat(bool enable) {
                             CarServer_VehicleAction_hvacSteeringWheelHeaterAction_tag, enable);
 }
 
+void TeslaBLE::Vehicle::set_front_seat_heat(int level) {
+  send_infotainment_action_("Front Seat Heat", CarServer_VehicleAction_hvacSeatHeaterActions_tag,
+                            static_cast<int32_t>(level));
+}
+
+void TeslaBLE::Vehicle::set_front_seat_cool(int level) {
+  send_infotainment_action_("Front Seat Cool", CarServer_VehicleAction_hvacSeatCoolerActions_tag,
+                            static_cast<int32_t>(level));
+}
+
 // =============================================================================
 // Vehicle Controls (Infotainment)
 // =============================================================================
