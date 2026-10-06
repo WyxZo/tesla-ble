@@ -241,6 +241,8 @@ class Vehicle {
   void set_bioweapon_mode(bool enable);
   void set_preconditioning_max(bool enable);  // Defrost
   void set_steering_wheel_heat(bool enable);
+  void set_front_seat_heat(int level);  // 0=Off, 1=Low, 2=Medium, 3=High; applies to both front seats
+  void set_front_seat_cool(int level);  // 0=Off, 1=Low, 2=Medium, 3=High; applies to both front seats
 
   // Vehicle controls (infotainment)
   void flash_lights();
